@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>國中智力測驗模擬題（隨機 50 題）</title>
+<title>國中智力測驗模擬題（題庫 400 題）</title>
 <style>
   :root{
     --bg:#f4f6fb; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
@@ -109,8 +109,8 @@
     <h1>國中智力測驗 — 模擬試題　<span class="byline">Cheney Lai 專用</span></h1>
     <p>四大向度 · 語文推理｜數量推理｜圖形推理｜邏輯推理</p>
     <div class="meta">
+      <span class="pill">題庫每類 100 題</span>
       <span class="pill">每次隨機抽 50 題</span>
-      <span class="pill">每題 2 分．滿分 100</span>
       <span class="pill">含 PR 值估計</span>
     </div>
   </header>
@@ -133,7 +133,7 @@
   <div class="result" id="result"></div>
   <div id="quiz"></div>
 
-  <footer>本測驗為練習用模擬題，題型參考國民中學智力測驗與多元性向測驗之標準向度編製。每次作答自動隨機抽題並打亂選項。</footer>
+  <footer>本測驗為練習用模擬題，題型參考國民中學智力測驗與多元性向測驗之標準向度編製。題庫每向度 100 題，每次作答隨機抽題並打亂選項。</footer>
 </div>
 
 <div class="submit">
@@ -142,7 +142,7 @@
 </div>
 
 <script>
-/* ---------- 圖形產生器 ---------- */
+/* ===== 圖形產生器 ===== */
 function genPoly(sides,rot){let p=[];for(let i=0;i<sides;i++){let a=(rot+i*360/sides)*Math.PI/180;p.push((30+20*Math.cos(a)).toFixed(1)+","+(30+20*Math.sin(a)).toFixed(1));}return p.join(" ");}
 function svgWrap(inner){return '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';}
 function spec2svg(s){
@@ -196,8 +196,23 @@ function spec2svg(s){
   return '';
 }
 
-/* ---------- 題池（可擴充：直接在各分類陣列加題即可） ---------- */
-const POOL={
+/* ===== 工具 ===== */
+function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function sample(a,n){return shuffle(a.slice()).slice(0,n);}
+function isFig(o){return typeof o==='object';}
+function numOpts(correct,cands){
+  const o=[correct];
+  for(const c of cands){ if(o.length>=4) break; if(c!==correct && c>0 && o.indexOf(c)<0) o.push(c); }
+  let k=1;
+  while(o.length<4){ if(correct+k>0 && o.indexOf(correct+k)<0) o.push(correct+k);
+    else if(correct-k>0 && o.indexOf(correct-k)<0) o.push(correct-k); k++; if(k>80) break; }
+  return o.slice(0,4).map(String);
+}
+
+/* ===== 基礎題（精選） ===== */
+const BASE={
 "語文":[
 {q:"「醫生」之於「醫院」，如同「老師」之於下列何者？",o:["學生","學校","課本","粉筆"],a:1,e:"職業與其主要工作場所的關係：醫生在醫院工作，老師在學校工作。"},
 {q:"下列何者與「節儉」意思相反？",o:["儉樸","浪費","勤勞","謹慎"],a:1,e:"節儉指用度有節制，相反詞為「浪費」。"},
@@ -214,7 +229,7 @@ const POOL={
 {q:"「花瓣」之於「花」，如同「樹葉」之於下列何者？",o:["樹根","樹","森林","果實"],a:1,e:"部分與整體的關係：花瓣是花的一部分，樹葉是樹的一部分。"},
 {q:"與「高興」意思最接近的是？",o:["愉快","悲傷","憤怒","害怕"],a:0,e:"高興＝心情愉悅，與「愉快」同義。"},
 {q:"「教師」之於「學校」，如同「醫師」之於下列何者？",o:["病人","醫院","護士","藥房"],a:1,e:"職業與工作場所的關係：教師在學校，醫師在醫院。"},
-{q:"成語「守株待兔」比喻的是？",o:["妄想不勞而獲、坐享其成","勤奮努力不懈","凡事未雨綢繆","隨機應變"],a:0,e:"農夫守著樹樁等兔子撞死，比喻死守狹隘經驗、妄想不勞而獲。"},
+{q:"成語「守株待兔」比喻的是？",o:["妄想不勞而獲、坐享其成","勤奮努力不懈","凡事未雨綢繆","隨機應變"],a:0,e:"農夫守著樹樁等兔子撞死，比喻死守經驗、妄想不勞而獲。"},
 {q:"「魚」之於「水」，如同「鳥」之於下列何者？",o:["天空","樹木","翅膀","鳥巢"],a:0,e:"生物與其生活環境的關係：魚生活在水中，鳥飛翔於天空。"},
 {q:"「鉛筆」之於「文具」，如同「玫瑰」之於下列何者？",o:["花朵","葉子","香味","紅色"],a:0,e:"個體與其所屬類別的關係：鉛筆屬於文具，玫瑰屬於花朵。"},
 {q:"「飛機」之於「飛行員」，如同「輪船」之於下列何者？",o:["船長","乘客","海洋","碼頭"],a:0,e:"交通工具與其駕駛者的關係：飛機由飛行員駕駛，輪船由船長駕駛。"},
@@ -227,20 +242,20 @@ const POOL={
 {q:"數列：1、1、2、3、5、8、（　）。問號處應填？",o:["11","12","13","15"],a:2,e:"費氏數列，每項為前兩項之和，5＋8＝13。"},
 {q:"數列：2、5、11、23、（　）。問號處應填？",o:["35","44","47","46"],a:2,e:"規律為「乘2加1」：23×2＋1＝47。"},
 {q:"一打鉛筆有 12 支，3 打共有幾支？",o:["24","30","36","48"],a:2,e:"12×3＝36 支。"},
-{q:"甲、乙同時寫字。當甲寫完 60 個字時乙寫了 30 個字；當乙寫到 60 個字時，甲已寫了幾個字？",o:["90","100","120","140"],a:2,e:"甲乙速度比為 60:30＝2:1。乙寫 60 字時甲寫 60×2＝120 字。"},
+{q:"甲、乙同時寫字。甲寫完 60 字時乙寫 30 字；乙寫到 60 字時，甲已寫幾字？",o:["90","100","120","140"],a:2,e:"甲乙速度比 2:1，乙寫 60 字時甲寫 120 字。"},
 {q:"數列：80、40、20、10、（　）。問號處應填？",o:["5","8","15","2"],a:0,e:"每項除以 2，10÷2＝5。"},
-{q:"連續三個整數的和為 30，其中最大的整數是？",o:["9","10","11","12"],a:2,e:"三數為 9、10、11，和為 30，最大為 11。"},
+{q:"連續三個整數的和為 30，最大的整數是？",o:["9","10","11","12"],a:2,e:"三數為 9、10、11，最大為 11。"},
 {q:"數列：1、3、6、10、15、（　）。問號處應填？",o:["18","20","21","25"],a:2,e:"相鄰差為 2、3、4、5、6，15＋6＝21。"},
 {q:"一支筆 12 元，買 7 支付 100 元，應找回多少元？",o:["14","16","18","20"],a:1,e:"12×7＝84，100－84＝16 元。"},
-{q:"3 個蘋果 60 元，依相同單價買 5 個蘋果需要多少元？",o:["80","90","100","120"],a:2,e:"每個 60÷3＝20 元，5×20＝100 元。"},
+{q:"3 個蘋果 60 元，依相同單價買 5 個需要多少元？",o:["80","90","100","120"],a:2,e:"每個 20 元，5×20＝100 元。"},
 {q:"數列：1、2、4、7、11、（　）。問號處應填？",o:["14","15","16","18"],a:2,e:"相鄰差為 1、2、3、4、5，11＋5＝16。"},
-{q:"數列：5、10、15、20、（　）。問號處應填？",o:["25","30","24","22"],a:0,e:"每項加 5 的等差數列，20＋5＝25。"},
+{q:"數列：5、10、15、20、（　）。問號處應填？",o:["25","30","24","22"],a:0,e:"每項加 5，20＋5＝25。"},
 {q:"數列：1、2、4、8、（　）。問號處應填？",o:["12","14","16","18"],a:2,e:"每項乘以 2，8×2＝16。"},
-{q:"一盒雞蛋有 10 顆，3 盒半共有幾顆？",o:["30","35","33","40"],a:1,e:"10×3.5＝35 顆。"},
-{q:"汽車時速 60 公里，行駛 2.5 小時可走幾公里？",o:["120","150","180","130"],a:1,e:"60×2.5＝150 公里。"},
+{q:"一盒雞蛋 10 顆，3 盒半共幾顆？",o:["30","35","33","40"],a:1,e:"10×3.5＝35 顆。"},
+{q:"汽車時速 60 公里，行駛 2.5 小時走幾公里？",o:["120","150","180","130"],a:1,e:"60×2.5＝150 公里。"},
 {q:"數列：2、6、12、20、30、（　）。問號處應填？",o:["36","40","42","44"],a:2,e:"相鄰差為 4、6、8、10、12，30＋12＝42。"},
-{q:"一個正方形的周長是 36 公分，邊長是幾公分？",o:["6","8","9","12"],a:2,e:"正方形四邊等長，36÷4＝9 公分。"},
-{q:"班上共 25 人，男生比女生多 5 人，男生有幾人？",o:["10","12","15","18"],a:2,e:"女生＝(25－5)÷2＝10 人，男生＝10＋5＝15 人。"}
+{q:"正方形周長 36 公分，邊長幾公分？",o:["6","8","9","12"],a:2,e:"36÷4＝9 公分。"},
+{q:"班上 25 人，男生比女生多 5 人，男生幾人？",o:["10","12","15","18"],a:2,e:"女生 10 人，男生 15 人。"}
 ],
 "圖形":[
 {q:"觀察箭頭的旋轉規律，問號處應是哪一個？",s:[{arrow:0},{arrow:90},{arrow:180},{q:true}],o:[{arrow:270},{arrow:0},{arrow:90},{arrow:180}],a:0,e:"箭頭每次順時針旋轉 90 度：上、右、下、左。"},
@@ -248,44 +263,240 @@ const POOL={
 {q:"依點數的變化規律，問號處應有幾點？",s:[{dots:1},{dots:2},{dots:3},{q:true}],o:[{dots:4},{dots:3},{dots:5},{dots:2}],a:0,e:"點數每次加 1：1、2、3、4。"},
 {q:"依圖形邊數的規律，下一個圖形應是？",s:[{poly:'tri'},{poly:'square'},{poly:'penta'},{q:true}],o:[{poly:'hexa'},{poly:'hepta'},{poly:'tri'},{poly:'octa'}],a:0,e:"邊數依序 3、4、5、6，下一個是六邊形。"},
 {q:"黑色方格依規律移動，問號處的黑格應在哪裡？",s:[{grid:0},{grid:1},{grid:2},{q:true}],o:[{grid:3},{grid:0},{grid:1},{grid:2}],a:0,e:"黑格沿順時針移動：左上、右上、右下、左下。"},
-{q:"下列何者是左側圖形的「左右鏡像」？",s:[{flag:'right'}],o:[{flag:'left'},{flag:'right'},{flag:'up'},{flag:'down'}],a:0,e:"左右翻轉後，旗子由朝右變成朝左，旗桿位置也左右對調。"},
-{q:"依黑白交替的規律，問號處應是？",s:[{circle:'fill'},{circle:'empty'},{circle:'fill'},{circle:'empty'},{q:true}],o:[{circle:'fill'},{circle:'empty'},{poly:'square'},{circle:'half'}],a:0,e:"實心與空心交替出現，前一個為空心，故下一個為實心圓。"},
-{q:"依圓形由小到大的規律，下一個應是？",s:[{csize:9},{csize:15},{csize:21},{q:true}],o:[{csize:27},{csize:9},{csize:15},{csize:6}],a:0,e:"半徑每次增加，圖形越來越大，下一個為最大的圓。"},
+{q:"下列何者是左側圖形的「左右鏡像」？",s:[{flag:'right'}],o:[{flag:'left'},{flag:'right'},{flag:'up'},{flag:'down'}],a:0,e:"左右翻轉後，旗子由朝右變成朝左。"},
+{q:"依黑白交替的規律，問號處應是？",s:[{circle:'fill'},{circle:'empty'},{circle:'fill'},{circle:'empty'},{q:true}],o:[{circle:'fill'},{circle:'empty'},{poly:'square'},{circle:'half'}],a:0,e:"實心與空心交替，前一個為空心，故下一個為實心圓。"},
+{q:"依圓形由小到大的規律，下一個應是？",s:[{csize:9},{csize:15},{csize:21},{q:true}],o:[{csize:27},{csize:9},{csize:15},{csize:6}],a:0,e:"半徑每次增加，下一個為最大的圓。"},
 {q:"箭頭依逆時針方向旋轉，問號處應是？",s:[{arrow:0},{arrow:270},{arrow:180},{q:true}],o:[{arrow:90},{arrow:0},{arrow:180},{arrow:270}],a:0,e:"每次逆時針旋轉 90 度：上、左、下、右。"},
 {q:"依點數的變化規律，問號處應有幾點？",s:[{dots:4},{dots:3},{dots:2},{q:true}],o:[{dots:1},{dots:2},{dots:3},{dots:4}],a:0,e:"點數每次減 1：4、3、2、1。"},
-{q:"直線每次旋轉 45 度，問號處應是哪一個？",s:[{line:0},{line:45},{line:90},{q:true}],o:[{line:135},{line:0},{line:45},{line:90}],a:0,e:"由水平依序旋轉 45 度：橫、斜、直、反斜。"},
-{q:"三角形的方向依規律交替，問號處應是？",s:[{tri:'up'},{tri:'down'},{tri:'up'},{tri:'down'},{q:true}],o:[{tri:'up'},{tri:'down'},{tri:'left'},{tri:'right'}],a:0,e:"三角形朝上、朝下交替出現，前一個朝下，故下一個朝上。"},
-{q:"箭頭依順時針旋轉，問號處應是？",s:[{arrow:90},{arrow:180},{arrow:270},{q:true}],o:[{arrow:0},{arrow:90},{arrow:180},{arrow:270}],a:0,e:"每次順時針旋轉 90 度：右、下、左、上。"},
-{q:"依點數規律，問號處應有幾點？",s:[{dots:2},{dots:3},{dots:4},{q:true}],o:[{dots:5},{dots:4},{dots:6},{dots:3}],a:0,e:"點數每次加 1：2、3、4、5。"},
-{q:"依圖形邊數遞減的規律，下一個應是？",s:[{poly:'hexa'},{poly:'penta'},{poly:'square'},{q:true}],o:[{poly:'tri'},{poly:'square'},{poly:'penta'},{poly:'rect'}],a:0,e:"邊數依序 6、5、4、3，下一個是三角形。"},
-{q:"黑色方格依規律移動，問號處的黑格應在哪裡？",s:[{grid:0},{grid:3},{grid:2},{q:true}],o:[{grid:1},{grid:0},{grid:2},{grid:3}],a:0,e:"黑格沿逆時針移動：左上、左下、右下、右上。"},
-{q:"三角形方向依規律交替，問號處應是？",s:[{tri:'down'},{tri:'up'},{tri:'down'},{q:true}],o:[{tri:'up'},{tri:'down'},{tri:'left'},{tri:'right'}],a:0,e:"三角形朝下、朝上交替，前一個朝下，故下一個朝上。"},
-{q:"依圓形由大到小的規律，下一個應是？",s:[{csize:24},{csize:18},{csize:12},{q:true}],o:[{csize:6},{csize:12},{csize:18},{csize:24}],a:0,e:"半徑每次減少，圖形越來越小，下一個為最小的圓。"}
+{q:"直線每次旋轉 45 度，問號處應是哪一個？",s:[{line:0},{line:45},{line:90},{q:true}],o:[{line:135},{line:0},{line:45},{line:90}],a:0,e:"由水平依序旋轉 45 度。"},
+{q:"三角形的方向依規律交替，問號處應是？",s:[{tri:'up'},{tri:'down'},{tri:'up'},{tri:'down'},{q:true}],o:[{tri:'up'},{tri:'down'},{tri:'left'},{tri:'right'}],a:0,e:"三角形朝上、朝下交替，下一個朝上。"}
 ],
 "邏輯":[
-{q:"小明比小華高，小華比小強高。三人之中誰最高？",o:["小明","小華","小強","無法判斷"],a:0,e:"由小明高於小華、小華高於小強，可知小明最高。"},
-{q:"已知「只要下雨，地就會濕」。現在看到地是濕的，能否確定一定下過雨？",o:["一定下過雨","不一定，地濕可能有別的原因","一定沒下雨","以上皆非"],a:1,e:"灑水、漏水等也會使地濕，故由「地濕」不能反推「一定下雨」。"},
-{q:"下列四者中，何者「不」屬於同一類？",o:["桌子","椅子","書櫃","汽車"],a:3,e:"桌子、椅子、書櫃都是家具，汽車是交通工具。"},
-{q:"排隊時，甲站在乙的前面，丙站在乙的後面。則站在最前面的是？",o:["甲","乙","丙","無法判斷"],a:0,e:"順序為甲、乙、丙，最前面是甲。"},
+{q:"小明比小華高，小華比小強高。三人之中誰最高？",o:["小明","小華","小強","無法判斷"],a:0,e:"小明高於小華、小華高於小強，故小明最高。"},
+{q:"已知「只要下雨，地就會濕」。現在地是濕的，能確定一定下過雨嗎？",o:["一定下過雨","不一定，地濕可能有別的原因","一定沒下雨","以上皆非"],a:1,e:"灑水、漏水也會使地濕，故不能反推一定下雨。"},
+{q:"下列四者中，何者「不」屬於同一類？",o:["桌子","椅子","書櫃","汽車"],a:3,e:"桌子、椅子、書櫃是家具，汽車是交通工具。"},
+{q:"排隊時，甲在乙前面，丙在乙後面。站在最前面的是？",o:["甲","乙","丙","無法判斷"],a:0,e:"順序為甲、乙、丙，最前面是甲。"},
 {q:"一年有幾個季節？",o:["二","三","四","五"],a:2,e:"一年分為春、夏、秋、冬四季。"},
-{q:"時鐘現在是 3 點整，經過 90 分鐘後是幾點幾分？",o:["4:00","4:30","5:00","3:30"],a:1,e:"90 分鐘等於 1 小時 30 分，3:00 加 1:30 為 4:30。"},
-{q:"面向「北」方站立，向右轉 90 度之後，會面向哪個方向？",o:["東","西","南","北"],a:0,e:"面向北時，右手邊是東方，向右轉 90 度即面向東。"},
-{q:"3 隻貓在 3 分鐘內可抓到 3 隻老鼠。依相同效率，9 隻貓在 9 分鐘內可抓幾隻老鼠？",o:["3","9","18","27"],a:3,e:"每隻貓 3 分鐘抓 1 隻，9 分鐘抓 3 隻；9 隻貓共 9×3＝27 隻。"},
-{q:"全班 40 人，每人至少喜歡數學或英文之一。喜歡數學的有 30 人，喜歡英文的有 25 人。兩科都喜歡的有幾人？",o:["10","15","5","55"],a:1,e:"由排容原理：30＋25－40＝15 人兩科都喜歡。"},
-{q:"1 公斤的鐵與 1 公斤的棉花，哪一個比較重？",o:["鐵比較重","棉花比較重","一樣重","無法比較"],a:2,e:"重量都是 1 公斤，故一樣重；只是體積不同。"},
-{q:"今天是星期一，三天後是星期幾？",o:["星期三","星期四","星期五","星期六"],a:1,e:"星期一往後算三天：二、三、四，為星期四。"},
-{q:"將一張紙對摺 3 次後攤平前，紙會被分成幾層？",o:["3","6","8","9"],a:2,e:"每對摺一次層數加倍：2、4、8，即 2 的 3 次方等於 8 層。"},
-{q:"小強今年 12 歲，5 年後他幾歲？",o:["16","17","18","15"],a:1,e:"12＋5＝17 歲。"},
-{q:"若今天是星期五，後天是星期幾？",o:["星期六","星期日","星期一","星期四"],a:1,e:"後天為兩天後：六、日，故是星期日。"},
-{q:"下列何者與其他三者「不同類」？",o:["玫瑰","百合","松樹","菊花"],a:2,e:"玫瑰、百合、菊花都是花，松樹是樹木。"},
-{q:"已知 A 大於 B，且 B 等於 C。則 A 與 C 的關係是？",o:["A 大於 C","A 小於 C","A 等於 C","無法判斷"],a:0,e:"B 等於 C，而 A 大於 B，所以 A 大於 C。"},
-{q:"一個禮拜有幾天？",o:["五","六","七","八"],a:2,e:"一個禮拜有七天。"},
-{q:"小明從前面數是第 3 個，從後面數也是第 3 個，這一排共有幾人？",o:["3","4","5","6"],a:2,e:"3＋3－1＝5 人（小明被重複算一次）。"},
-{q:"下列分數中，哪一個最大？",o:["二分之一","三分之一","四分之一","五分之一"],a:0,e:"分子相同時，分母越小數值越大，故二分之一最大。"}
+{q:"時鐘現在 3 點整，經過 90 分鐘後是幾點幾分？",o:["4:00","4:30","5:00","3:30"],a:1,e:"90 分鐘＝1 小時 30 分，3:00＋1:30＝4:30。"},
+{q:"面向「北」站立，向右轉 90 度後，面向哪個方向？",o:["東","西","南","北"],a:0,e:"面向北時右手邊是東，向右轉 90 度即面向東。"},
+{q:"3 隻貓 3 分鐘抓 3 隻老鼠。依相同效率，9 隻貓 9 分鐘抓幾隻？",o:["3","9","18","27"],a:3,e:"每隻貓 3 分鐘抓 1 隻，9 分鐘抓 3 隻；9 隻共 27 隻。"},
+{q:"全班 40 人，每人至少喜歡數學或英文。喜歡數學 30 人、英文 25 人，兩科都喜歡幾人？",o:["10","15","5","55"],a:1,e:"排容原理：30＋25－40＝15 人。"},
+{q:"1 公斤的鐵與 1 公斤的棉花，哪個比較重？",o:["鐵比較重","棉花比較重","一樣重","無法比較"],a:2,e:"重量都是 1 公斤，一樣重。"},
+{q:"今天是星期一，三天後是星期幾？",o:["星期三","星期四","星期五","星期六"],a:1,e:"一往後三天：二、三、四，為星期四。"},
+{q:"將一張紙對摺 3 次，會被分成幾層？",o:["3","6","8","9"],a:2,e:"每摺一次層數加倍，2³＝8 層。"}
 ]
 };
 
-/* 每個向度每次抽幾題（合計 50） */
+/* ===== 語文資料庫 ===== */
+const SYN=[
+["美麗","漂亮","醜陋","高大","普通"],["快樂","開心","難過","生氣","疲倦"],["寒冷","冰冷","炎熱","溫暖","潮濕"],
+["聰明","伶俐","愚笨","懶惰","膽小"],["安靜","寧靜","吵鬧","熱鬧","忙碌"],["勇敢","英勇","膽怯","軟弱","猶豫"],
+["龐大","巨大","微小","細小","輕巧"],["迅速","快速","緩慢","遲緩","停滯"],["整潔","乾淨","髒亂","凌亂","污濁"],
+["困難","艱難","容易","簡單","輕鬆"],["喜愛","喜歡","厭惡","討厭","憎恨"],["著名","有名","平凡","無名","普通"],
+["富裕","富有","貧窮","匱乏","簡陋"],["堅固","牢固","脆弱","鬆動","破舊"],["遼闊","寬廣","狹窄","窄小","擁擠"],
+["珍貴","寶貴","廉價","普通","低劣"],["疲倦","疲累","精神","活潑","旺盛"],["鎮定","冷靜","慌張","緊張","焦急"],
+["愉悅","歡喜","悲傷","憂愁","痛苦"],["充足","充裕","缺乏","不足","稀少"],["仔細","細心","粗心","馬虎","草率"],
+["嶄新","全新","老舊","陳舊","破損"],["昏暗","幽暗","明亮","光亮","耀眼"],["親切","和善","冷漠","兇惡","嚴厲"],
+["誠實","老實","虛偽","欺騙","狡猾"],["勤勞","勤奮","懶散","怠惰","散漫"],["謙虛","謙遜","驕傲","自大","傲慢"],
+["美好","美妙","糟糕","惡劣","醜陋"],["機靈","靈活","遲鈍","呆板","笨拙"],["堅持","堅守","放棄","退縮","動搖"]
+];
+const ANT=[
+["增加","減少","提高","擴大","上升"],["開始","結束","起步","出發","展開"],["成功","失敗","勝利","達成","完成"],
+["喜歡","討厭","喜愛","欣賞","熱愛"],["光明","黑暗","明亮","清晰","耀眼"],["前進","後退","向前","邁進","行走"],
+["容易","困難","簡單","輕鬆","順利"],["寒冷","炎熱","涼爽","冰冷","寒涼"],["真實","虛假","確實","實在","真誠"],
+["強壯","虛弱","健壯","結實","強健"],["快樂","悲傷","開心","愉快","歡喜"],["上升","下降","提升","增高","攀升"],
+["寬闊","狹窄","廣大","遼闊","空曠"],["勤勞","懶惰","勤奮","努力","認真"],["緊張","放鬆","焦急","慌張","不安"],
+["高大","矮小","巨大","龐大","高聳"],["清楚","模糊","清晰","明白","明確"],["危險","安全","危急","緊急","風險"],
+["快速","緩慢","迅速","急促","飛快"],["浪費","節省","奢侈","揮霍","花費"]
+];
+const IDIOM=[
+["亡羊補牢","出事後及時補救，為時不晚","一錯再錯","事前準備","遇事退縮"],
+["對牛彈琴","對不懂的人講道理，白費力氣","因材施教","循循善誘","一針見血"],
+["井底之蛙","見識淺薄、眼界狹小","見多識廣","高瞻遠矚","學富五車"],
+["一舉兩得","做一件事得到兩種好處","徒勞無功","事倍功半","顧此失彼"],
+["半途而廢","事情沒做完就中途放棄","堅持到底","有始有終","貫徹始終"],
+["自相矛盾","言行前後不一致、互相牴觸","言行一致","表裡如一","言出必行"],
+["滴水穿石","持之以恆，小力量也能成大事","一蹴可幾","半途而廢","急功近利"],
+["雪中送炭","在別人困難時及時幫助","落井下石","火上加油","趁火打劫"],
+["杯弓蛇影","疑神疑鬼、自相驚擾","處變不驚","臨危不亂","鎮定自若"],
+["班門弄斧","在行家面前賣弄本領","不恥下問","虛懷若谷","深藏不露"],
+["因小失大","為小利益而損失大利益","顧全大局","深謀遠慮","因勢利導"],
+["名落孫山","考試或選拔沒被錄取","金榜題名","名列前茅","脫穎而出"],
+["入木三分","形容見解或描寫非常深刻","浮光掠影","蜻蜓點水","不痛不癢"],
+["對症下藥","針對問題採取正確方法","亂槍打鳥","隔靴搔癢","捨本逐末"],
+["守口如瓶","嚴守祕密、不洩露","信口開河","口無遮攔","言多必失"],
+["廢寢忘食","專心努力到忘了睡覺吃飯","好逸惡勞","三心二意","敷衍了事"],
+["水落石出","事情真相完全顯露","撲朔迷離","不了了之","真假難辨"],
+["胸有成竹","做事前已有完整把握","手足無措","心慌意亂","毫無頭緒"],
+["拔苗助長","急於求成反而把事情弄糟","順其自然","水到渠成","循序漸進"],
+["精益求精","已經很好仍追求更好","得過且過","敷衍塞責","固步自封"]
+];
+const ANALOGY=[
+["「書」之於「閱讀」，如同「歌」之於下列何者？","歌唱","旋律","歌手","音樂","對象與動作的關係：書用來閱讀，歌用來歌唱。"],
+["「眼睛」之於「看」，如同「耳朵」之於下列何者？","聽","聲音","鼻子","嘴巴","器官與功能：眼睛用來看，耳朵用來聽。"],
+["「冷」之於「熱」，如同「快」之於下列何者？","慢","速度","跑","急","反義關係：冷對熱，快對慢。"],
+["「手」之於「手套」，如同「腳」之於下列何者？","襪子","鞋帶","走路","小腿","部位與穿戴物：手戴手套，腳穿襪子。"],
+["「醫師」之於「醫術」，如同「廚師」之於下列何者？","廚藝","廚房","食材","菜刀","從業者與其專業技能：醫師有醫術，廚師有廚藝。"],
+["「雨」之於「雨傘」，如同「太陽」之於下列何者？","太陽眼鏡","雲朵","白天","溫暖","情境與防護用品：下雨用雨傘，烈日用太陽眼鏡。"],
+["「作家」之於「文章」，如同「畫家」之於下列何者？","圖畫","顏料","畫筆","畫展","創作者與作品：作家寫文章，畫家畫圖畫。"],
+["「樹」之於「森林」，如同「星星」之於下列何者？","星空","月亮","夜晚","宇宙","個體與群體：許多樹成森林，許多星成星空。"],
+["「火車」之於「鐵軌」，如同「汽車」之於下列何者？","道路","輪胎","司機","車庫","交通工具與行駛路徑：火車走鐵軌，汽車走道路。"],
+["「老師」之於「教導」，如同「醫生」之於下列何者？","治療","病人","醫院","藥物","角色與其職責：老師負責教導，醫生負責治療。"],
+["「春天」之於「溫暖」，如同「冬天」之於下列何者？","寒冷","下雪","結冰","季節","季節與特徵：春天溫暖，冬天寒冷。"],
+["「狗」之於「汪汪」，如同「貓」之於下列何者？","喵喵","奔跑","抓癢","撒嬌","動物與叫聲：狗叫汪汪，貓叫喵喵。"],
+["「鳥」之於「翅膀」，如同「魚」之於下列何者？","魚鰭","鱗片","河水","游泳","動物與運動器官：鳥用翅膀，魚用魚鰭。"],
+["「鉛筆」之於「橡皮擦」，如同「鎖」之於下列何者？","鑰匙","門板","鐵塊","保險","成對相關物：鉛筆配橡皮擦，鎖配鑰匙。"],
+["「醫院」之於「病人」，如同「學校」之於下列何者？","學生","老師","教室","課本","場所與主要服務對象：醫院有病人，學校有學生。"],
+["「種子」之於「植物」，如同「嬰兒」之於下列何者？","大人","父母","搖籃","哭聲","幼態與成熟態：種子長成植物，嬰兒長成大人。"],
+["「廚房」之於「烹飪」，如同「教室」之於下列何者？","上課","學生","黑板","課桌","場所與主要活動：廚房用來烹飪，教室用來上課。"],
+["「畫筆」之於「畫家」，如同「聽診器」之於下列何者？","醫生","病人","藥房","護士","工具與使用者：畫筆給畫家用，聽診器給醫生用。"],
+["「字母」之於「單字」，如同「磚塊」之於下列何者？","房子","水泥","工人","牆面","組成單位與整體：字母組成單字，磚塊砌成房子。"],
+["「快樂」之於「微笑」，如同「悲傷」之於下列何者？","流淚","生氣","大叫","沉默","情緒與表現：快樂會微笑，悲傷會流淚。"]
+];
+function buildVerbItems(){
+  const out=[];
+  SYN.forEach(a=>out.push({q:"與「"+a[0]+"」意思最接近的是？",o:[a[1],a[2],a[3],a[4]],a:0,e:"「"+a[0]+"」與「"+a[1]+"」意思相近。"}));
+  ANT.forEach(a=>out.push({q:"下列何者與「"+a[0]+"」意思相反？",o:[a[1],a[2],a[3],a[4]],a:0,e:"「"+a[0]+"」的相反詞是「"+a[1]+"」。"}));
+  IDIOM.forEach(a=>out.push({q:"成語「"+a[0]+"」比喻的是？",o:[a[1],a[2],a[3],a[4]],a:0,e:"「"+a[0]+"」比喻"+a[1]+"。"}));
+  ANALOGY.forEach(a=>out.push({q:a[0],o:[a[1],a[2],a[3],a[4]],a:0,e:a[5]}));
+  return out;
+}
+
+/* ===== 數量產生器 ===== */
+const NUMGEN=[
+function(){const a=rnd(1,9),d=rnd(2,9),t=[a,a+d,a+2*d,a+3*d],nx=a+4*d;
+  return {q:"數列："+t.join("、")+"、（　）。問號處應填？",o:numOpts(nx,[nx+d,nx-d,nx+1,nx-2]),a:0,e:"每項加 "+d+" 的等差數列，"+t[3]+"＋"+d+"＝"+nx+"。"};},
+function(){const a=rnd(2,5),r=pick([2,3]),t=[a,a*r,a*r*r],nx=a*r*r*r;
+  return {q:"數列："+t.join("、")+"、（　）。問號處應填？",o:numOpts(nx,[nx+a*r,nx-a*r,nx+r,nx*2]),a:0,e:"每項乘以 "+r+"，"+t[2]+"×"+r+"＝"+nx+"。"};},
+function(){const n=rnd(1,5),t=[n*n,(n+1)*(n+1),(n+2)*(n+2)],nx=(n+3)*(n+3);
+  return {q:"數列："+t.join("、")+"、（　）。問號處應填？",o:numOpts(nx,[nx+1,nx-1,nx+(n+3),(n+2)*(n+2)+1]),a:0,e:"為連續平方數，下一項為 "+(n+3)+"²＝"+nx+"。"};},
+function(){const a=rnd(1,6),k=rnd(1,3),t=[a,a+k,a+k+(k+1),a+k+(k+1)+(k+2)],nx=t[3]+(k+3);
+  return {q:"數列："+t.join("、")+"、（　）。問號處應填？",o:numOpts(nx,[nx+1,nx-1,nx+2,nx-2]),a:0,e:"相鄰差遞增，下一個差為 "+(k+3)+"，"+t[3]+"＋"+(k+3)+"＝"+nx+"。"};},
+function(){const d=pick([5,10,25]),t=[d,2*d,3*d,4*d],nx=5*d;
+  return {q:"數列："+t.join("、")+"、（　）。問號處應填？",o:numOpts(nx,[nx+d,nx-d,nx+1,nx-2]),a:0,e:"每項加 "+d+"，"+t[3]+"＋"+d+"＝"+nx+"。"};},
+function(){const d=rnd(2,9),ans=12*d;
+  return {q:"一打有 12 個，"+d+" 打共有幾個？",o:numOpts(ans,[ans+12,ans-12,10*d,ans+6]),a:0,e:"12×"+d+"＝"+ans+" 個。"};},
+function(){const u=rnd(5,30),n=rnd(2,5),m=rnd(2,8),costN=u*n,ans=u*m;
+  if(m===n) return null;
+  return {q:n+" 個蘋果 "+costN+" 元，依相同單價買 "+m+" 個需要多少元？",o:numOpts(ans,[ans+u,ans-u,costN+u,ans+u*2]),a:0,e:"每個 "+costN+"÷"+n+"＝"+u+" 元，"+m+"×"+u+"＝"+ans+" 元。"};},
+function(){const p=rnd(8,40),q=rnd(2,6),pay=pick([100,200,500]),cost=p*q;
+  if(cost>=pay) return null; const ans=pay-cost;
+  return {q:"一支筆 "+p+" 元，買 "+q+" 支付 "+pay+" 元，應找回多少元？",o:numOpts(ans,[ans+p,ans-p,ans+10,ans-10]),a:0,e:p+"×"+q+"＝"+cost+"，"+pay+"－"+cost+"＝"+ans+" 元。"};},
+function(){const s=rnd(3,15),P=s*4;
+  return {q:"正方形周長 "+P+" 公分，邊長是幾公分？",o:numOpts(s,[s+1,s-1,P/2,s+2]),a:0,e:"正方形四邊等長，"+P+"÷4＝"+s+" 公分。"};},
+function(){const cur=rnd(7,15),y=rnd(2,9),ans=cur+y;
+  return {q:"小明今年 "+cur+" 歲，"+y+" 年後他幾歲？",o:numOpts(ans,[ans+1,ans-1,cur,ans+2]),a:0,e:cur+"＋"+y+"＝"+ans+" 歲。"};},
+function(){const v=pick([40,50,60,70,80,90]),t=pick([2,3,4,1.5,2.5]),ans=v*t;
+  return {q:"時速 "+v+" 公里，行駛 "+t+" 小時可走幾公里？",o:numOpts(ans,[ans+v,ans-v,ans+10,ans-10]),a:0,e:v+"×"+t+"＝"+ans+" 公里。"};},
+function(){const m=rnd(5,30),sum=3*m,ans=m+1;
+  return {q:"連續三個整數的和為 "+sum+"，最大的整數是？",o:numOpts(ans,[m,m+2,m-1,m+3]),a:0,e:"三數為 "+(m-1)+"、"+m+"、"+(m+1)+"，最大為 "+ans+"。"};}
+];
+
+/* ===== 圖形產生器 ===== */
+const DIRNAME={0:"上",90:"右",180:"下",270:"左"};
+const SIDEN={3:'tri',4:'square',5:'penta',6:'hexa',7:'hepta',8:'octa'};
+const FIGGEN=[
+function(){const dir=pick([1,-1]),start=pick([0,90,180,270]),step=dir>0?90:270;
+  const a0=start,a1=(start+step)%360,a2=(start+2*step)%360,ans=(start+3*step)%360;
+  const dirs=[0,90,180,270],opts=[{arrow:ans}].concat(dirs.filter(d=>d!==ans).map(d=>({arrow:d})));
+  return {q:"觀察箭頭的旋轉規律，問號處應是哪一個？",s:[{arrow:a0},{arrow:a1},{arrow:a2},{q:true}],o:opts,a:0,e:"箭頭每次"+(dir>0?"順時針":"逆時針")+"旋轉 90 度。"};},
+function(){const step=pick([1,-1]),start=step>0?rnd(1,4):rnd(4,6),c=[start,start+step,start+2*step],ans=start+3*step;
+  if(ans<1||ans>7||c.some(x=>x<1||x>7)) return null;
+  const cand=[ans+1,ans-1,ans+2,ans-2].filter(x=>x>=1&&x<=7&&x!==ans),opts=[{dots:ans}].concat(sample(cand,3).map(x=>({dots:x})));
+  if(opts.length<4) return null;
+  return {q:"依點數的變化規律，問號處應有幾點？",s:[{dots:c[0]},{dots:c[1]},{dots:c[2]},{q:true}],o:opts,a:0,e:"點數"+(step>0?"每次加 1":"每次減 1")+"。"};},
+function(){const step=pick([1,-1]),start=step>0?rnd(3,5):rnd(6,8),sd=[start,start+step,start+2*step],ans=start+3*step;
+  if(ans<3||ans>8||sd.some(x=>x<3||x>8)) return null;
+  const dists=sample([3,4,5,6,7,8].filter(x=>x!==ans),3),opts=[{poly:SIDEN[ans]}].concat(dists.map(x=>({poly:SIDEN[x]})));
+  return {q:"依圖形邊數的規律，下一個圖形應是？",s:[{poly:SIDEN[sd[0]]},{poly:SIDEN[sd[1]]},{poly:SIDEN[sd[2]]},{q:true}],o:opts,a:0,e:"邊數依序 "+sd.join("、")+"、"+ans+"。"};},
+function(){const dir=pick([1,-1]),order=dir>0?[0,1,2,3]:[0,3,2,1],k=rnd(0,3);
+  const seq=[order[k%4],order[(k+1)%4],order[(k+2)%4]],ans=order[(k+3)%4];
+  const opts=[{grid:ans}].concat([0,1,2,3].filter(p=>p!==ans).map(p=>({grid:p})));
+  return {q:"黑色方格依規律移動，問號處的黑格應在哪裡？",s:seq.map(p=>({grid:p})).concat([{q:true}]),o:opts,a:0,e:"黑格沿"+(dir>0?"順時針":"逆時針")+"方向移動。"};},
+function(){const start=pick(['up','down']),other=start==='up'?'down':'up';
+  return {q:"三角形的方向依規律交替，問號處應是？",s:[{tri:start},{tri:other},{tri:start},{q:true}],o:[{tri:other},{tri:start},{tri:'left'},{tri:'right'}],a:0,e:"三角形朝上、朝下交替出現。"};},
+function(){const sizes=[6,9,12,15,18,21,24],step=pick([1,-1]),si=step>0?rnd(0,2):rnd(4,6),idx=[si,si+step,si+2*step],ai=si+3*step;
+  if(ai<0||ai>=sizes.length||idx.some(x=>x<0||x>=sizes.length)) return null;
+  const dist=sample(sizes.filter((_,i)=>i!==ai),3),opts=[{csize:sizes[ai]}].concat(dist.map(v=>({csize:v})));
+  return {q:"依圓形大小的規律，下一個應是？",s:idx.map(i=>({csize:sizes[i]})).concat([{q:true}]),o:opts,a:0,e:"圖形越來越"+(step>0?"大":"小")+"。"};},
+function(){const angs=[0,45,90,135],s0=pick(angs),st=pick([45,-45]),mods=v=>((v%180)+180)%180;
+  const seq=[mods(s0),mods(s0+st),mods(s0+2*st)],ans=mods(s0+3*st);
+  const opts=[{line:ans}].concat(angs.filter(a=>a!==ans).map(a=>({line:a})));
+  return {q:"直線每次旋轉 45 度，問號處應是哪一個？",s:seq.map(v=>({line:v})).concat([{q:true}]),o:opts,a:0,e:"直線依固定方向每次旋轉 45 度。"};},
+function(){const sd=pick([3,4,5,6]); let od=pick([3,4,5,6]); while(od===sd) od=pick([3,4,5,6]);
+  return {q:"下列四個圖形中，何者與其他三者「不同類」？",o:[{poly:SIDEN[od]},{poly:SIDEN[sd]},{poly:SIDEN[sd]},{poly:SIDEN[sd]}],a:0,e:"其餘三者邊數相同，僅此一個不同。"};},
+function(){const base=pick(['fill','empty']),odd=base==='fill'?'empty':'fill';
+  return {q:"下列四個圖形中，何者與其他三者「不同類」？",o:[{circle:odd},{circle:base},{circle:base},{circle:base}],a:0,e:"其餘三者填色相同，僅此一個不同。"};},
+function(){const stem=pick(['right','left']),ans=stem==='right'?'left':'right';
+  return {q:"下列何者是左側圖形的「左右鏡像」？",s:[{flag:stem}],o:[{flag:ans},{flag:stem},{flag:'up'},{flag:'down'}],a:0,e:"左右翻轉後，旗子方向與旗桿位置左右對調。"};}
+];
+
+/* ===== 邏輯產生器 ===== */
+const NAMES=['小明','小華','小強','阿光','美美','志明','曉婷','大雄'];
+const DAYS=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+const CLASSIFY=[
+["紅蘿蔔","蘋果","香蕉","葡萄","蘋果、香蕉、葡萄是水果，紅蘿蔔是蔬菜。"],
+["鯨魚","鯊魚","鮪魚","吳郭魚","鯊魚等是魚類，鯨魚是哺乳動物。"],
+["椅子","蘋果","西瓜","草莓","其餘是水果，椅子是家具。"],
+["老虎","玫瑰","百合","菊花","其餘是花，老虎是動物。"],
+["鋼琴","籃球","足球","排球","其餘是球類運動，鋼琴是樂器。"],
+["飛機","汽車","火車","腳踏車","其餘為陸上交通工具，飛機是航空交通工具。"],
+["太陽","月亮","地球","火星","月亮、地球、火星本身不發光，太陽是恆星。"],
+["醫生","蘋果","梨子","橘子","其餘是水果，醫生是職業。"],
+["鉛筆","沙發","書桌","衣櫃","其餘是家具，鉛筆是文具。"],
+["蛇","麻雀","老鷹","鴿子","其餘是鳥類，蛇是爬蟲類。"],
+["番茄","西瓜","葡萄","水蜜桃","其餘常作水果，番茄常被歸為蔬菜。"]
+];
+const LOGGEN=[
+function(){const n=sample(NAMES,3),ask=pick(['最高','最矮']),ans=ask==='最高'?n[0]:n[2];
+  const opts=[ans].concat(NAMES.filter(x=>x!==ans).slice(0,2)).concat(['無法判斷']);
+  return {q:n[0]+" 比 "+n[1]+" 高，"+n[1]+" 比 "+n[2]+" 高。三人之中誰"+ask+"？",o:opts.slice(0,4),a:0,e:"由高度關係可推得 "+ans+" "+ask+"。"};},
+function(){const f=rnd(2,6),b=rnd(2,6),total=f+b-1;
+  return {q:"小明從前面數是第 "+f+" 個，從後面數是第 "+b+" 個，這一排共有幾人？",o:numOpts(total,[f+b,total+1,total-1,total+2]),a:0,e:f+"＋"+b+"－1＝"+total+" 人（小明被重複算一次）。"};},
+function(){const start=rnd(0,6),n=rnd(1,6),ans=DAYS[(start+n)%7];
+  const opts=[ans].concat(sample(DAYS.filter(d=>d!==ans),3));
+  return {q:"今天是"+DAYS[start]+"，"+n+" 天後是星期幾？",o:opts,a:0,e:"由"+DAYS[start]+"往後數 "+n+" 天為"+ans+"。"};},
+function(){const sh=rnd(1,9),add=pick([30,60,90,120]),tot=sh*60+add,eh=Math.floor(tot/60),em=tot%60,fmt=h=>h+":"+(em===0?"00":em);
+  const ans=eh+":"+(em===0?"00":em);
+  const opts=[ans,(eh+1)+":"+(em===0?"00":em),eh+":"+(em===0?"30":"00"),(eh-1)+":"+(em===0?"00":em)];
+  const uniq=[];opts.forEach(o=>{if(uniq.indexOf(o)<0)uniq.push(o);});while(uniq.length<4)uniq.push((eh+uniq.length)+":15");
+  return {q:"時鐘現在是 "+sh+" 點整，經過 "+add+" 分鐘後是幾點幾分？",o:uniq.slice(0,4),a:0,e:add+" 分鐘＝"+Math.floor(add/60)+" 小時 "+(add%60)+" 分，結果為 "+ans+"。"};},
+function(){const T=rnd(30,45),A=rnd(20,T),B=rnd(20,T);if(A+B<=T)return null;const both=A+B-T;if(both<1)return null;
+  return {q:"全班 "+T+" 人，每人至少喜歡數學或英文之一。喜歡數學 "+A+" 人、英文 "+B+" 人，兩科都喜歡幾人？",o:numOpts(both,[both+5,both-5,A+B-1,both+2]),a:0,e:"排容原理："+A+"＋"+B+"－"+T+"＝"+both+" 人。"};},
+function(){const ds=sample([2,3,4,5,6,7,8],4),ask=pick(['最大','最小']),ansD=ask==='最大'?Math.min.apply(null,ds):Math.max.apply(null,ds);
+  const tx=d=>d+"分之一",ans=tx(ansD),opts=[ans].concat(ds.filter(d=>d!==ansD).map(tx));
+  return {q:"下列分數中，哪一個"+ask+"？",o:opts.slice(0,4),a:0,e:"分子相同時，分母越小數值越大；故 "+ans+" "+ask+"。"};},
+function(){const n=rnd(1,6),ans=Math.pow(2,n);
+  return {q:"將一張紙對摺 "+n+" 次，會被分成幾層？",o:numOpts(ans,[2*n,ans/2,ans+2,ans-2]),a:0,e:"每摺一次層數加倍，2 的 "+n+" 次方＝"+ans+" 層。"};},
+function(){const dirs=['北','東','南','西'],f=rnd(0,3),turn=pick(['右','左']),res=turn==='右'?dirs[(f+1)%4]:dirs[(f+3)%4];
+  const opts=[res].concat(dirs.filter(d=>d!==res));
+  return {q:"面向「"+dirs[f]+"」站立，向"+turn+"轉 90 度後面向哪個方向？",o:opts,a:0,e:"面向"+dirs[f]+"向"+turn+"轉 90 度後面向"+res+"。"};},
+function(){const c=pick(CLASSIFY),b=[c[1],c[2],c[3]];
+  return {q:"下列何者與其他三者「不同類」？",o:[c[0]].concat(b),a:0,e:c[4]};}
+];
+
+/* ===== 組合題池：補滿每類 100 題 ===== */
+function sigOf(it){return it.q+"|"+JSON.stringify(it.s||0)+"|"+it.o.map(o=>JSON.stringify(o)).sort().join(",");}
+function distinctOpts(it){const s=it.o.map(o=>JSON.stringify(o));return new Set(s).size===4 && it.o.length===4;}
+function fillPool(base,gens,target){
+  const out=base.slice();const sigs=new Set(out.map(sigOf));let tries=0;
+  while(out.length<target && tries<60000){
+    tries++;const g=pick(gens);let it;try{it=g();}catch(e){it=null;}
+    if(!it||!distinctOpts(it)) continue;
+    const s=sigOf(it);if(sigs.has(s)) continue;sigs.add(s);out.push(it);
+  }
+  return out.slice(0,target);
+}
+const TARGET=100;
+const VERBITEMS=buildVerbItems();
+const POOL={
+  "語文":fillPool(BASE["語文"],[function(){return pick(VERBITEMS);}],TARGET),
+  "數量":fillPool(BASE["數量"],NUMGEN,TARGET),
+  "圖形":fillPool(BASE["圖形"],FIGGEN,TARGET),
+  "邏輯":fillPool(BASE["邏輯"],LOGGEN,TARGET)
+};
+
+/* 每向度每次抽幾題（合計 50） */
 const SECTIONS=[
  {tag:"語文",name:"第一部分　語文推理",draw:13},
  {tag:"數量",name:"第二部分　數量與數學推理",draw:13},
@@ -293,20 +504,12 @@ const SECTIONS=[
  {tag:"邏輯",name:"第四部分　邏輯與常識推理",draw:12},
 ];
 
-/* ---------- 工具 ---------- */
+/* ===== 狀態與流程 ===== */
 const LT=["A","B","C","D"];
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function isFig(o){return typeof o==='object';}
-
-/* ---------- 狀態 ---------- */
 const quizEl=document.getElementById('quiz');
 const timerEl=document.getElementById('timer');
-let ACTIVE=[];          // 本次抽出的題目
-let answers=[];
-let graded=false;
-let sec=0;
+let ACTIVE=[],answers=[],graded=false,sec=0;
 
-/* ---------- 抽題與建立 ---------- */
 function buildQuiz(){
   ACTIVE=[];
   SECTIONS.forEach(secObj=>{
@@ -319,36 +522,28 @@ function buildQuiz(){
     });
   });
   answers=new Array(ACTIVE.length).fill(null);
-  graded=false; sec=0; timerEl.textContent='00:00';
+  graded=false;sec=0;timerEl.textContent='00:00';
   document.getElementById('totalN').textContent=ACTIVE.length;
-  const r=document.getElementById('result'); r.classList.remove('show'); r.innerHTML='';
+  const r=document.getElementById('result');r.classList.remove('show');r.innerHTML='';
   document.getElementById('submitBtn').disabled=false;
   document.getElementById('resetBtn').style.display='none';
-  render(); updateProgress();
+  render();updateProgress();
 }
-
 function render(){
-  let html='';let lastCat=null;
+  let html='',lastCat=null;
   ACTIVE.forEach((item,i)=>{
-    if(item.cat!==lastCat){ html+='<div class="secttl"><span>'+item.cat+'</span>'+item.secName+'</div>'; lastCat=item.cat; }
+    if(item.cat!==lastCat){html+='<div class="secttl"><span>'+item.cat+'</span>'+item.secName+'</div>';lastCat=item.cat;}
     html+='<div class="q" id="q'+i+'">';
     html+='<div class="stem"><span class="num">'+(i+1)+'</span>'+item.q+'</div>';
     if(item.s){
       html+='<div class="figrow">';
-      item.s.forEach((sp,k)=>{
-        html+='<div class="cell">'+spec2svg(sp)+'</div>';
-        if(k<item.s.length-1) html+='<span class="arrow">→</span>';
-      });
+      item.s.forEach((sp,k)=>{html+='<div class="cell">'+spec2svg(sp)+'</div>';if(k<item.s.length-1)html+='<span class="arrow">→</span>';});
       html+='</div>';
     }
     html+='<div class="opts">';
-    item.o.forEach((op,j)=>{
-      const inner=isFig(op)?spec2svg(op):'<span class="txt">'+op+'</span>';
-      html+='<div class="opt" data-q="'+i+'" data-o="'+j+'"><span class="ltr">'+LT[j]+'</span>'+inner+'</div>';
-    });
-    html+='</div>';
-    html+='<div class="exp" id="exp'+i+'"></div>';
-    html+='</div>';
+    item.o.forEach((op,j)=>{const inner=isFig(op)?spec2svg(op):'<span class="txt">'+op+'</span>';
+      html+='<div class="opt" data-q="'+i+'" data-o="'+j+'"><span class="ltr">'+LT[j]+'</span>'+inner+'</div>';});
+    html+='</div><div class="exp" id="exp'+i+'"></div></div>';
   });
   quizEl.innerHTML=html;
   quizEl.querySelectorAll('.opt').forEach(el=>el.addEventListener('click',onPick));
@@ -358,70 +553,40 @@ function onPick(e){
   const el=e.currentTarget,qi=+el.dataset.q,oi=+el.dataset.o;
   answers[qi]=oi;
   document.querySelectorAll('#q'+qi+' .opt').forEach(o=>o.classList.remove('sel'));
-  el.classList.add('sel');
-  updateProgress();
+  el.classList.add('sel');updateProgress();
 }
 function updateProgress(){
   const n=answers.filter(a=>a!==null).length;
   document.getElementById('doneN').textContent=n;
   document.getElementById('progBar').style.width=(ACTIVE.length?(n/ACTIVE.length*100):0)+'%';
 }
-
-/* ---------- 計時 ---------- */
 setInterval(()=>{if(graded)return;sec++;const m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');timerEl.textContent=m+':'+s;},1000);
 
-/* ---------- PR 估計（常態分布） ---------- */
+/* PR 估計 */
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
 function normCdf(z){return 0.5*(1+erf(z/Math.SQRT2));}
-function getPrSettings(){
-  let mean=parseFloat(document.getElementById('prMean').value);
-  let sd=parseFloat(document.getElementById('prSd').value);
-  if(!isFinite(mean)) mean=70;
-  if(!isFinite(sd)||sd<=0) sd=15;
-  return {mean:mean,sd:sd};
-}
-function estimatePR(score){
-  const {mean,sd}=getPrSettings();
-  let pr=Math.round(normCdf((score-mean)/sd)*100);
-  pr=Math.max(1,Math.min(99,pr));
-  return {pr:pr,mean:mean,sd:sd};
-}
-// 記住 PR 設定
-['prMean','prSd'].forEach(id=>{
-  const el=document.getElementById(id);
-  try{const v=localStorage.getItem('iq_'+id); if(v!==null) el.value=v;}catch(e){}
-  el.addEventListener('change',()=>{try{localStorage.setItem('iq_'+id,el.value);}catch(e){}});
-});
+function getPr(){let mean=parseFloat(document.getElementById('prMean').value),sd=parseFloat(document.getElementById('prSd').value);if(!isFinite(mean))mean=70;if(!isFinite(sd)||sd<=0)sd=15;return {mean:mean,sd:sd};}
+function estimatePR(score){const g=getPr();let pr=Math.round(normCdf((score-g.mean)/g.sd)*100);pr=Math.max(1,Math.min(99,pr));return {pr:pr,mean:g.mean,sd:g.sd};}
+['prMean','prSd'].forEach(id=>{const el=document.getElementById(id);try{const v=localStorage.getItem('iq_'+id);if(v!==null)el.value=v;}catch(e){}el.addEventListener('change',()=>{try{localStorage.setItem('iq_'+id,el.value);}catch(e){}});});
 
-/* ---------- 交卷 ---------- */
 document.getElementById('submitBtn').addEventListener('click',()=>{
   const blank=answers.filter(a=>a===null).length;
-  if(!graded && blank>0){ if(!confirm('還有 '+blank+' 題未作答，確定要交卷嗎？')) return; }
+  if(!graded && blank>0){if(!confirm('還有 '+blank+' 題未作答，確定要交卷嗎？'))return;}
   grade();
 });
 function grade(){
   graded=true;
-  let correct=0;const catScore={語文:0,數量:0,圖形:0,邏輯:0},catTot={語文:0,數量:0,圖形:0,邏輯:0};
+  let correct=0;const cs={語文:0,數量:0,圖形:0,邏輯:0},ct={語文:0,數量:0,圖形:0,邏輯:0};
   ACTIVE.forEach((item,i)=>{
-    const qBox=document.getElementById('q'+i);
-    qBox.classList.add('graded');
-    catTot[item.cat]++;
-    const ok=answers[i]===item.a;
-    if(ok){correct++;catScore[item.cat]++;}
-    qBox.querySelectorAll('.opt').forEach(o=>{
-      const j=+o.dataset.o;
-      if(j===item.a) o.classList.add('correct');
-      else if(j===answers[i]) o.classList.add('wrong');
-    });
-    const exp=document.getElementById('exp'+i);
-    const your=answers[i]===null?'（未作答）':LT[answers[i]];
+    const qBox=document.getElementById('q'+i);qBox.classList.add('graded');ct[item.cat]++;
+    const ok=answers[i]===item.a;if(ok){correct++;cs[item.cat]++;}
+    qBox.querySelectorAll('.opt').forEach(o=>{const j=+o.dataset.o;if(j===item.a)o.classList.add('correct');else if(j===answers[i])o.classList.add('wrong');});
+    const exp=document.getElementById('exp'+i),your=answers[i]===null?'（未作答）':LT[answers[i]];
     if(ok){exp.classList.remove('bad');exp.innerHTML='<b>✓ 答對</b>　正解：'+LT[item.a]+'。'+item.e;}
     else{exp.classList.add('bad');exp.innerHTML='<b>✗ 答錯</b>　你選 '+your+'，正解：'+LT[item.a]+'。'+item.e;}
   });
-  const total=ACTIVE.length;
-  const score=Math.round(correct/total*100);
-  const {pr,mean,sd}=estimatePR(score);
-  let gd='', tip='';
+  const total=ACTIVE.length,score=Math.round(correct/total*100),pe=estimatePR(score);
+  let gd='',tip='';
   if(score>=90){gd='優異 ★★★';tip='推理能力非常出色，繼續保持！';}
   else if(score>=75){gd='良好 ★★';tip='整體表現不錯，針對錯題再加強即可。';}
   else if(score>=60){gd='及格 ★';tip='基礎已具備，建議多練習弱項題型。';}
@@ -429,14 +594,11 @@ function grade(){
   const r=document.getElementById('result');
   r.innerHTML='<div class="score">'+score+'<small> / 100 分</small></div>'+
     '<div class="grade">'+gd+'　答對 '+correct+'／'+total+' 題</div>'+
-    '<div class="pr">估計 PR 值　<b>'+pr+'</b>'+
-      '<div class="prnote">依常態分布（平均 '+mean+'、標準差 '+sd+'）換算，為估計值僅供參考，非官方常模。</div></div>'+
+    '<div class="pr">估計 PR 值　<b>'+pe.pr+'</b><div class="prnote">依常態分布（平均 '+pe.mean+'、標準差 '+pe.sd+'）換算，為估計值僅供參考，非官方常模。</div></div>'+
     '<div style="color:var(--muted);font-size:14px">作答時間 '+timerEl.textContent+'　·　'+tip+'</div>'+
-    '<div class="break">'+
-      ['語文','數量','圖形','邏輯'].map(t=>'<div class="b"><div class="t">'+
-        ({語文:'語文推理',數量:'數量推理',圖形:'圖形推理',邏輯:'邏輯推理'})[t]+
-        '</div><div class="v">'+catScore[t]+'<small style="font-size:13px;color:var(--muted)">/'+catTot[t]+'</small></div></div>').join('')+
-    '</div>';
+    '<div class="break">'+['語文','數量','圖形','邏輯'].map(t=>'<div class="b"><div class="t">'+
+      ({語文:'語文推理',數量:'數量推理',圖形:'圖形推理',邏輯:'邏輯推理'})[t]+
+      '</div><div class="v">'+cs[t]+'<small style="font-size:13px;color:var(--muted)">/'+ct[t]+'</small></div></div>').join('')+'</div>';
   r.classList.add('show');
   document.getElementById('submitBtn').disabled=true;
   document.getElementById('resetBtn').style.display='inline-block';
@@ -444,7 +606,6 @@ function grade(){
 }
 document.getElementById('resetBtn').addEventListener('click',()=>{buildQuiz();window.scrollTo({top:0,behavior:'smooth'});});
 
-/* ---------- 啟動 ---------- */
 buildQuiz();
 </script>
 </body>
