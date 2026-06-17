@@ -338,4 +338,14 @@ function grade(){
         ({語文:'語文推理',數量:'數量推理',圖形:'圖形推理',邏輯:'邏輯推理'})[t]+
         '</div><div class="v">'+catScore[t]+'<small style="font-size:13px;color:var(--muted)">/'+catTot[t]+'</small></div></div>').join('')+
     '</div>';
-  r.classLis
+  r.classList.add('show');
+  document.getElementById('submitBtn').disabled=true;
+  document.getElementById('resetBtn').style.display='inline-block';
+  r.scrollIntoView({behavior:'smooth'});
+}
+document.getElementById('resetBtn').addEventListener('click',()=>location.reload());
+
+render();
+</script>
+</body>
+</html>
